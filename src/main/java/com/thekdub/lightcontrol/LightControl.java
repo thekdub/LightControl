@@ -1,11 +1,8 @@
 package com.thekdub.lightcontrol;
 
-import gnu.io.RXTXPort;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
 
 public class LightControl {
