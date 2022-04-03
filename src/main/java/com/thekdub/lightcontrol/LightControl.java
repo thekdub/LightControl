@@ -1,78 +1,86 @@
 package com.thekdub.lightcontrol;
 
-import gnu.io.NRSerialPort;
 import gnu.io.RXTXPort;
 
-import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.Scanner;
 
 public class LightControl {
   
   public static void main(String[] args) {
+
     if (args.length == 0) {
-      System.out.println("Usage: java -jar LightControl.jar <port>");
-      System.out.println("Port name not provided. Available ports:");
-      for (String s : NRSerialPort.getAvailableSerialPorts()) {
-        System.out.println("\t> " + s);
-      }
-      if (NRSerialPort.getAvailableSerialPorts().size() == 0) {
-        System.out.println("\tNo serial interfaces detected!");
+      System.out.println("Usage: java -jar lightcontrol.jar <port1> <port2> ...\n");
+      System.out.println("\tEach port provided will be assigned to each universe in order.");
+      System.out.println("Valid Ports:");
+      for (String port : DMXCommunicator.getValidSerialPorts()) {
+        System.out.printf("\t> %s\n", port);
       }
       return;
     }
-    final int BAUD = 250000;
-    final String PORT = args[0];
-  
-    System.out.println("Connecting on " + PORT + " @ " + BAUD);
-    
-    final int[] CHANNELS = new int[16];
-    for (int i = 0; i < CHANNELS.length; i++) {
-      CHANNELS[i] = 0;
-    }
-    CHANNELS[0] = 0xff;
-    CHANNELS[2] = 0xff;
-  
-    CHANNELS[4] = 0xff;
-    CHANNELS[7] = 0xff;
-    
-    NRSerialPort serial = new NRSerialPort(PORT, BAUD);
-    serial.connect();
-    RXTXPort s = serial.getSerialPortInstance();
-    s.enableRs485(false, 0, 0);
-    s.setRTS(false);
-    DataOutputStream out = new DataOutputStream(s.getOutputStream());
-    try {
-      while (!Thread.interrupted()) {
-        // BREAK 0 x 24
-        out.write(0);
-        out.write(0);
-        out.write(0);
-        // MARK AFTER BREAK (MAB) 1 x 3
-        out.write(0b11);
-        // START CODE
-        out.write(0x00);
-        // CHANNEL DATA
-        for (int i = 0; i < CHANNELS.length; i++) {
-          // MARK TIME BETWEEN FRAMES (MTBF)
-          out.write(0xf);
-          // START CODE
-          out.write(0b0);
-          // DATA
-          out.write(CHANNELS[i] & 0xff);
-          // STOP CODE
-          out.write(0b11);
-          System.out.println("Sent " + CHANNELS[i] + " to channel " + (i+1));
-        }
-        // MARK TIME BETWEEN PACKETS (MTBP)
-        out.write(0xffffffff);
-        out.write(0xffffffff);
-        Thread.sleep(500);
+
+    final List<DMXCommunicator> PORTS = new ArrayList<>();
+
+    for (String port : args) {
+      try {
+        PORTS.add(new DMXCommunicator(port));
+      }
+      catch (Exception e) {
+        System.out.printf("Unable to connect to port %s! Double check your spelling and make sure the " +
+              "adapter is connected!\n", port);
+        return;
       }
     }
-    catch (Exception e) {
+
+    System.out.println("Beginning output!");
+    for (DMXCommunicator port : PORTS) {
+      port.start();
+    }
+
+    System.out.println("System ready! Enter <address: 1-" + PORTS.size() * 512 + "> <value: 0-255> to set a value.");
+    System.out.println("Type 'q' to exit.");
+    Scanner scanner = new Scanner(System.in);
+    while (true) {
+      System.out.print("> ");
+      String input = scanner.nextLine();
+      if (input.matches("[0-9]+ [0-9]+")) {
+        try {
+          int address = Math.min(PORTS.size() * 512-1, Math.max(0, Integer.parseInt(input.split(" ")[0])-1));
+          byte value = (byte) Math.min(255, Math.max(0, Integer.parseInt(input.split(" ")[1])));
+          int universe = address / 512;
+          address = address - universe * 512;
+          PORTS.get(universe).setByte(address, (byte) value);
+        }
+        catch (Exception e) {
+          System.out.println("Invalid input! Please use format <address: 1-" + PORTS.size() * 512 + "> <value: 0-255>");
+          System.out.println("Type 'q' to exit.");
+        }
+      }
+      else {
+        if (input.equalsIgnoreCase("q") || input.equalsIgnoreCase("quit")) {
+          break;
+        }
+        else {
+          System.out.println("Invalid input! Please use format <address: 1-" + PORTS.size() * 512 + "> <value: 0-255>");
+          System.out.println("Type 'q' to exit.");
+        }
+      }
+    }
+    try {
+      while (!(System.in.available() == 0)) {
+        Thread.sleep(100);
+      }
+    } catch (IOException | InterruptedException e) {
       e.printStackTrace();
     }
-    serial.disconnect();
-    
+
+    System.out.println("Stopping output!");
+    for (DMXCommunicator port : PORTS) {
+      port.stop();
+    }
   }
   
 }
