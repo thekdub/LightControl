@@ -44,32 +44,96 @@ public class LightControl {
       port.start();
     }
 
-    System.out.println("System ready! Enter <address: 1-" + PORTS.size() * 512 + "> <value: 0-255> to set a value.");
-    System.out.println("Type 'q' to exit.");
+    System.out.println("System ready! Enter <address: 1-" + PORTS.size() * 512 + "> <value: 0-255 / 0-100%> to set a value.");
+    System.out.println("Type 'q' to exit, 'v' for output values, or 'p' for output percents.");
     final Scanner SCANNER = new Scanner(System.in);
     while (true) {
       System.out.print("> ");
       final String INPUT = SCANNER.nextLine();
-      if (INPUT.matches("[0-9]+ [0-9]+")) {
+      if (INPUT.matches("[0-9]+ ([0-9]+\\.?[0-9]*)%?")) {
         try {
-          int address = Math.min(PORTS.size() * 512-1, Math.max(0, Integer.parseInt(INPUT.split(" ")[0])-1));
-          final byte VALUE = (byte) Math.min(255, Math.max(0, Integer.parseInt(INPUT.split(" ")[1])));
-          final int UNIVERSE = address / 512;
-          address = address - UNIVERSE * 512;
-          PORTS.get(UNIVERSE).setByte(address, (byte) VALUE);
+          final int UNIVERSE = (Integer.parseInt(INPUT.split(" ")[0])-1) / 512;
+          if (UNIVERSE >= PORTS.size() || UNIVERSE < 0) {
+            throw new Exception("Port out of range.");
+          }
+          final int ADDRESS = (Integer.parseInt(INPUT.split(" ")[0])-1) - UNIVERSE * 512;
+          if (ADDRESS >= 512 || ADDRESS < 0) {
+            throw new Exception("Port out of range.");
+          }
+          final int VALUE = (int)(Math.round(Double.parseDouble(INPUT.split(" ")[1]
+                .replace("%", "")) * (INPUT.endsWith("%") ? 2.55 : 1)));
+          if (VALUE >= 256 || VALUE < 0) {
+            throw new Exception("Value out of range.");
+          }
+          PORTS.get(UNIVERSE).setByte(ADDRESS, (byte) (VALUE&255));
         }
         catch (Exception e) {
-          System.out.println("Invalid input! Please use format <address: 1-" + PORTS.size() * 512 + "> <value: 0-255>");
-          System.out.println("Type 'q' to exit.");
+          System.out.println("\tError: " + e.getMessage());
+          System.out.println("\tTo set a value, use <address: 1-" + PORTS.size() * 512 + "> <value: 0-255 / 0-100%>, " +
+                "e.g. 12 127, or 53 83%");
+          System.out.println("\tType 'q' to exit, 'v' for output values, or 'p' for output percents.");
         }
       }
       else {
         if (INPUT.equalsIgnoreCase("q") || INPUT.equalsIgnoreCase("quit")) {
+          System.out.println("Terminating application...");
           break;
         }
+        else if (INPUT.equalsIgnoreCase("v") || INPUT.equalsIgnoreCase("values")) {
+          System.out.println("Current Output Values:");
+          for (int universe = 0; universe < PORTS.size(); universe++) {
+            final DMXCommunicator port = PORTS.get(universe);
+            System.out.printf("\tUNIVERSE %d", universe+1);
+            System.out.print("\n\t\t");
+            for (int i = 0; i < 16; i++) {
+              if (i != 0) {
+                System.out.print(" | ");
+              }
+              System.out.print("ADR VAL");
+            }
+            for (int address = 0; address < 512; address++) {
+              if (address % 16 == 0) {
+                System.out.print("\n\t\t");
+              }
+              else {
+                System.out.print(" | ");
+              }
+              System.out.printf("%" + ((PORTS.size()*512)+"").length() + "d %3d",
+                    address+1+universe*512, port.getByte(address)&255);
+            }
+            System.out.println();
+          }
+        }
+        else if (INPUT.equalsIgnoreCase("p") || INPUT.equalsIgnoreCase("percents")) {
+          System.out.println("Current Output Percentages:");
+          for (int universe = 0; universe < PORTS.size(); universe++) {
+            final DMXCommunicator port = PORTS.get(universe);
+            System.out.printf("\tUNIVERSE %d", universe+1);
+            System.out.print("\n\t\t");
+            for (int i = 0; i < 16; i++) {
+              if (i != 0) {
+                System.out.print(" | ");
+              }
+              System.out.print("ADR   %");
+            }
+            for (int address = 0; address < 512; address++) {
+              if (address % 16 == 0) {
+                System.out.print("\n\t\t");
+              }
+              else {
+                System.out.print(" | ");
+              }
+              System.out.printf("%" + ((PORTS.size()*512)+"").length() + "d %3.0f",
+                    address+1+universe*512, (port.getByte(address)&255)/255.0*100);
+            }
+            System.out.println();
+          }
+        }
         else {
-          System.out.println("Invalid input! Please use format <address: 1-" + PORTS.size() * 512 + "> <value: 0-255>");
-          System.out.println("Type 'q' to exit.");
+          System.out.println("\tInput not recognized.");
+          System.out.println("\tTo set a value, use <address: 1-" + PORTS.size() * 512 + "> <value: 0-255 / 0-100%>, " +
+                "e.g. 12 127, or 53 83%");
+          System.out.println("\tType 'q' to exit, 'v' for output values, or 'p' for output percents.");
         }
       }
     }
