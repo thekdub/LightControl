@@ -14,8 +14,8 @@ public class LightControl {
       System.out.println("\tEach port provided will be assigned to each universe in order.");
       System.out.println("Valid Ports:");
       if (DMXCommunicator.getValidSerialPorts().size() > 0) {
-        for (final String PORT : DMXCommunicator.getValidSerialPorts()) {
-          System.out.printf("\t> %s\n", PORT);
+        for (final String port : DMXCommunicator.getValidSerialPorts()) {
+          System.out.printf("\t> %s\n", port);
         }
       }
       else {
@@ -26,51 +26,52 @@ public class LightControl {
 
     System.out.println("\nStarting LightControl...\n");
 
-    final List<DMXCommunicator> PORTS = new ArrayList<>();
+    final List<DMXCommunicator> ports = new ArrayList<>();
 
     for (int i = 0; i < args.length; i++) {
-      final String PORT = args[i];
+      final String port = args[i];
       try {
-        PORTS.add(new DMXCommunicator(PORT));
-        System.out.printf("Using port %s for universe %d\n", PORT, i + 1);
+        ports.add(new DMXCommunicator(port));
+        System.out.printf("Using port %s for universe %d\n", port, i + 1);
       } catch (Exception e) {
         System.out.printf("Unable to connect to port %s! Double check your spelling and make sure the " +
-              "adapter is connected!\n", PORT);
+              "adapter is connected!\n", port);
         System.out.println("Terminating application!");
         return;
       }
     }
 
-    for (DMXCommunicator port : PORTS) {
+    for (DMXCommunicator port : ports) {
       port.start();
     }
 
     System.out.println("\nSystem ready! Enter 'h' to view command help.");
-    final Scanner SCANNER = new Scanner(System.in);
+    final Scanner scanner = new Scanner(System.in);
     EXIT:
     while (true) {
       System.out.print("> ");
-      final String INPUT = SCANNER.nextLine();
-      final String[] COMMANDS = INPUT.contains(",") ? INPUT.split(",") : new String[]{INPUT};
-      for (String command : COMMANDS) {
+      final String input = scanner.nextLine();
+      final String[] commands = input.contains(",") ? input.split(",") : new String[]{input};
+      for (String command : commands) {
         command = command.strip();
         if (command.matches("[0-9]+ ([0-9]+\\.?[0-9]*)%?")) {
           try {
-            final int UNIVERSE = (Integer.parseInt(command.split(" ")[0]) - 1) / 512;
-            if (UNIVERSE >= PORTS.size() || UNIVERSE < 0) {
+            final int universe = (Integer.parseInt(command.split(" ")[0]) - 1) / 512;
+            if (universe >= ports.size() || universe < 0) {
               throw new Exception("Port out of range.");
             }
-            final int ADDRESS = (Integer.parseInt(command.split(" ")[0]) - 1) - UNIVERSE * 512;
-            if (ADDRESS >= 512 || ADDRESS < 0) {
+            final int address = (Integer.parseInt(command.split(" ")[0]) - 1) - universe * 512;
+            if (address >= 512 || address < 0) {
               throw new Exception("Port out of range.");
             }
-            final int VALUE = (int) (Math.round(Double.parseDouble(command.split(" ")[1]
+            final int value = (int) (Math.round(Double.parseDouble(command.split(" ")[1]
                   .replace("%", "")) * (command.endsWith("%") ? 2.55 : 1)));
-            if (VALUE >= 256 || VALUE < 0) {
+            if (value >= 256 || value < 0) {
               throw new Exception("Value out of range.");
             }
-            PORTS.get(UNIVERSE).setByte(ADDRESS, (byte) (VALUE & 255));
-            System.out.printf("Set channel %d to %d / %.0f%%\n", ADDRESS + 1 + UNIVERSE * 512, VALUE & 255, (VALUE & 255) / 2.55);
+            ports.get(universe).setByte(address, (byte) (value & 255));
+            System.out.printf("Set channel %d to %d / %.0f%%\n", address + 1 + universe * 512, value & 255,
+                  (value & 255) / 2.55);
           } catch (Exception e) {
             System.out.printf("\nError: %s\nInput: %s\n", e.getMessage(), command);
             System.out.println("Enter 'h' to view command help.");
@@ -79,18 +80,18 @@ public class LightControl {
         else {
           if (command.equalsIgnoreCase("q") || command.equalsIgnoreCase("quit")) {
             System.out.println("\nTerminating application...");
-            for (final DMXCommunicator PORT : PORTS) {
+            for (final DMXCommunicator port : ports) {
               for (int address = 0; address < 512; address++) {
-                PORT.setByte(address, (byte) 0);
+                port.setByte(address, (byte) 0);
               }
             }
             break EXIT;
           }
           else if (command.equalsIgnoreCase("v") || command.equalsIgnoreCase("values")) {
             System.out.println("\nCurrent Output Values:");
-            for (int universe = 0; universe < PORTS.size(); universe++) {
-              final DMXCommunicator port = PORTS.get(universe);
-              System.out.printf("UNIVERSE %d", universe + 1);
+            for (int universe = 0; universe < ports.size(); universe++) {
+              final DMXCommunicator port = ports.get(universe);
+              System.out.printf("Universe %d", universe + 1);
               System.out.print("\n\t");
               for (int i = 0; i < 16; i++) {
                 if (i != 0) {
@@ -105,7 +106,7 @@ public class LightControl {
                 else {
                   System.out.print(" | ");
                 }
-                System.out.printf("%" + ((PORTS.size() * 512) + "").length() + "d %3d",
+                System.out.printf("%" + ((ports.size() * 512) + "").length() + "d %3d",
                       address + 1 + universe * 512, port.getByte(address) & 255);
               }
               System.out.println();
@@ -113,9 +114,9 @@ public class LightControl {
           }
           else if (command.equalsIgnoreCase("p") || command.equalsIgnoreCase("percents")) {
             System.out.println("\nCurrent Output Percentages:");
-            for (int universe = 0; universe < PORTS.size(); universe++) {
-              final DMXCommunicator port = PORTS.get(universe);
-              System.out.printf("UNIVERSE %d", universe + 1);
+            for (int universe = 0; universe < ports.size(); universe++) {
+              final DMXCommunicator port = ports.get(universe);
+              System.out.printf("Universe %d", universe + 1);
               System.out.print("\n\t");
               for (int i = 0; i < 16; i++) {
                 if (i != 0) {
@@ -130,7 +131,7 @@ public class LightControl {
                 else {
                   System.out.print(" | ");
                 }
-                System.out.printf("%" + ((PORTS.size() * 512) + "").length() + "d %3.0f",
+                System.out.printf("%" + ((ports.size() * 512) + "").length() + "d %3.0f",
                       address + 1 + universe * 512, (port.getByte(address) & 255) / 255.0 * 100);
               }
               System.out.println();
@@ -152,7 +153,7 @@ public class LightControl {
                                     
                   \tMultiple commands can be chained together by separating them with commas.
                   \t\tExample: 1 100%%, 5 23, 512 193, p
-                  """, PORTS.size() * 512);
+                  """, ports.size() * 512);
           }
           else {
             System.out.printf("\nError: Input not recognized.\nInput: %s\n", command);
@@ -161,7 +162,7 @@ public class LightControl {
         }
       }
     }
-    for (DMXCommunicator port : PORTS) {
+    for (DMXCommunicator port : ports) {
       port.stop();
     }
     System.out.println("\nGoodbye!\n");
