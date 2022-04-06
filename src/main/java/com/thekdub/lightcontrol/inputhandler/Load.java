@@ -16,9 +16,9 @@ public class Load extends InputHandler {
       final List<DMXCommunicator> ports = LightControl.getPorts();
       try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
         System.out.println("\nLoading output from file " + filename);
-        final String[] data = reader.readLine().split(",");
+        final char[] data = reader.readLine().toCharArray();
         for (int address = 0; address < data.length && address < ports.size() * 512; address++) {
-          ports.get(address / 512).setByte(address % 512, (byte) data[address].charAt(0));
+          ports.get(address / 512).setByte(address % 512, (byte) data[address]);
         }
         System.out.println("File read successfully!\n");
       } catch (IOException e) {

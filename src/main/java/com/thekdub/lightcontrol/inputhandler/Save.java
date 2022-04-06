@@ -16,12 +16,8 @@ public class Save extends InputHandler {
       final List<DMXCommunicator> ports = LightControl.getPorts();
       try (FileWriter writer = new FileWriter(filename)) {
         System.out.println("\nWriting current output to file " + filename);
-        for (int universe = 0; universe < ports.size(); universe++) {
-          final DMXCommunicator port = ports.get(universe);
+        for (final DMXCommunicator port : ports) {
           for (int address = 0; address < 512; address++) {
-            if (address > 0 || universe > 0) {
-              writer.write(",");
-            }
             writer.write((char) port.getByte(address) & 255);
           }
         }
