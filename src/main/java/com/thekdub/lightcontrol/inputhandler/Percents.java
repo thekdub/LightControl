@@ -4,9 +4,15 @@ import com.thekdub.lightcontrol.DMXCommunicator;
 import com.thekdub.lightcontrol.LightControl;
 
 public class Percents extends InputHandler {
+
   @Override
-  public boolean handle(String input) {
-    if (input.equalsIgnoreCase("p") || input.equalsIgnoreCase("percents")) {
+  public boolean accepts(String input) {
+    return input.equalsIgnoreCase("p") || input.equalsIgnoreCase("percents");
+  }
+
+  @Override
+  boolean execute(String input) {
+    if (accepts(input)) {
       System.out.println("\nCurrent Output Percentages:");
       for (int universe = 0; universe < LightControl.getPorts().size(); universe++) {
         final DMXCommunicator port = LightControl.getPorts().get(universe);
@@ -32,6 +38,11 @@ public class Percents extends InputHandler {
       }
       return true;
     }
+    return false;
+  }
+
+  @Override
+  public boolean async() {
     return false;
   }
 }

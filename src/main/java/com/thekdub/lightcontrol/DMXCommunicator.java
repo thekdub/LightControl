@@ -135,7 +135,7 @@ public class DMXCommunicator {
    */
   public static List<String> getValidSerialPorts() {
     SerialPort[] ports = SerialPort.getCommPorts();
-    List<String> portNames = new ArrayList<String>();
+    List<String> portNames = new ArrayList<>();
     for (SerialPort port : ports) {
       try {
         configureSerialPort(port);

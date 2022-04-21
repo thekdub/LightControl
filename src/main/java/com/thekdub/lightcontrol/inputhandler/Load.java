@@ -9,9 +9,15 @@ import java.io.IOException;
 import java.util.List;
 
 public class Load extends InputHandler {
+
   @Override
-  public boolean handle(String input) {
-    if (input.startsWith("l") && input.toLowerCase().matches("l(oad)? [a-z0-9-_.]+")) {
+  public boolean accepts(String input) {
+    return input.toLowerCase().startsWith("l") && input.toLowerCase().matches("l(oad)? [a-z0-9-_.]+");
+  }
+
+  @Override
+  boolean execute(String input) {
+    if (accepts(input)) {
       final String filename = input.substring(input.indexOf(" ") + 1);
       final List<DMXCommunicator> ports = LightControl.getPorts();
       try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
@@ -26,6 +32,11 @@ public class Load extends InputHandler {
       }
       return true;
     }
+    return false;
+  }
+
+  @Override
+  public boolean async() {
     return false;
   }
 }

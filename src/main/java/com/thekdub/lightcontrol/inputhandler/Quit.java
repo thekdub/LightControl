@@ -6,17 +6,22 @@ import com.thekdub.lightcontrol.LightControl;
 public class Quit extends InputHandler {
 
   @Override
-  public boolean handle(String input) {
-    if (input.equalsIgnoreCase("q") || input.equalsIgnoreCase("quit")) {
+  public boolean accepts(String input) {
+    return input.equalsIgnoreCase("q") || input.equalsIgnoreCase("quit");
+  }
+
+  @Override
+  boolean execute(String input) {
+    if (accepts(input)) {
       System.out.println("\nTerminating application...");
-      for (final DMXCommunicator port : LightControl.getPorts()) {
-        for (int address = 0; address < 512; address++) {
-          port.setByte(address, (byte) 0);
-        }
-      }
       System.exit(1);
       return true;
     }
+    return false;
+  }
+
+  @Override
+  public boolean async() {
     return false;
   }
 }

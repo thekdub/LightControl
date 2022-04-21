@@ -3,15 +3,20 @@ package com.thekdub.lightcontrol.inputhandler;
 import com.thekdub.lightcontrol.DMXCommunicator;
 import com.thekdub.lightcontrol.LightControl;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 
 public class Save extends InputHandler {
+
   @Override
-  public boolean handle(String input) {
-    if (input.startsWith("s") && input.toLowerCase().matches("s(ave)? [a-z0-9-_.]+")) {
+  public boolean accepts(String input) {
+    return input.toLowerCase().startsWith("s") && input.toLowerCase().matches("s(ave)? [a-z0-9-_.]+");
+  }
+
+  @Override
+  boolean execute(String input) {
+    if (accepts(input)) {
       final String filename = input.substring(input.indexOf(" ") + 1);
       final List<DMXCommunicator> ports = LightControl.getPorts();
       try (FileWriter writer = new FileWriter(filename)) {
@@ -28,6 +33,11 @@ public class Save extends InputHandler {
       }
       return true;
     }
+    return false;
+  }
+
+  @Override
+  public boolean async() {
     return false;
   }
 }
